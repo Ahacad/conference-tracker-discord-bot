@@ -12,60 +12,56 @@ export class ConferenceFetcher {
     
     for (const category of this.categories) {
       try {
-        const url = `${this.baseUrl}/cfp/call?conference=${encodeURIComponent(category)}`;
+        const url = `${this.baseUrl}/cfp/servlet/event.showcfp?contextid=1&sortby=1`;
         console.log('Fetching from URL:', url);
         
-        const response = await fetch(url);
-        const html = await response.text();
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
         
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const html = await response.text();
         const $ = cheerio.load(html);
         
-        // Find the conference table within contsec
-        const mainTable = $('.contsec table table').last();
+        // Find the main content table
+        const mainTable = $('table.conferencetable');
         
-        // Find rows with bgcolor="#f6f6f6" or bgcolor="#e6e6e6"
-        const rows = mainTable.find('tr[bgcolor="#f6f6f6"], tr[bgcolor="#e6e6e6"]');
-        console.log('Found rows:', rows.length);
-        
-        // Process rows in pairs
-        for (let i = 0; i < rows.length; i += 2) {
+        // Process each odd row (containing conference info)
+        mainTable.find('tr:not(.tableheader)').each((i, row) => {
           try {
-            const titleRow = $(rows[i]);
-            const detailsRow = $(rows[i + 1]);
+            const columns = $(row).find('td');
+            if (columns.length < 4) return; // Skip if row structure is invalid
             
-            if (!titleRow.length || !detailsRow.length) continue;
+            const eventLink = $(columns[0]).find('a').first();
+            const eventId = this.extractEventId(eventLink.attr('href') || '');
+            const name = eventLink.text().trim();
+            const deadline = $(columns[1]).text().trim();
+            const conference = $(columns[2]).text().trim();
+            const location = $(columns[3]).text().trim();
             
-            // Extract data from the first row
-            const linkElement = titleRow.find('td:first-child a');
-            const eventId = this.extractEventId(linkElement.attr('href') || '');
-            const shortName = linkElement.text().trim();
-            const fullTitle = titleRow.find('td[colspan="3"]').text().trim();
-            
-            // Extract data from the second row
-            const cells = detailsRow.find('td');
-            const date = $(cells[0]).text().trim();
-            const location = $(cells[1]).text().trim();
-            const deadline = $(cells[2]).text().trim();
-            
-            if (eventId && deadline) {
-              const conference: Conference = {
+            if (eventId && name && deadline) {
+              conferences.push({
                 id: eventId,
-                name: fullTitle || shortName,
-                deadline,
-                website: `${this.baseUrl}${linkElement.attr('href')}`,
+                name: name,
+                deadline: deadline,
+                website: `${this.baseUrl}${eventLink.attr('href')}`,
                 location: location !== 'N/A' ? location : '',
                 categories: [category],
                 lastUpdated: new Date().toISOString()
-              };
+              });
               
-              console.log('Parsed conference:', conference.name);
-              conferences.push(conference);
+              console.log('Parsed conference:', name);
             }
           } catch (error) {
-            console.error('Error parsing conference pair:', error);
-            continue;
+            console.error('Error parsing conference row:', error);
           }
-        }
+        });
+        
       } catch (error) {
         console.error(`Error fetching conferences for category ${category}:`, error);
       }

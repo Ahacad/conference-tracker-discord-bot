@@ -1,0 +1,25 @@
+{
+  "name": "conference-tracker-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "build": "webpack",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "cheerio": "1.0.0-rc.12"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240208.0",
+    "@types/jest": "^29.5.12",
+    "ts-jest": "^29.1.2",
+    "jest": "^29.7.0",
+    "jest-environment-node": "^29.7.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4"
+  }
+}

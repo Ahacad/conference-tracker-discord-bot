@@ -71,3 +71,4 @@ The following environment variables are required:
 
 Optional variables:
 - `WIKICFP_BASE_URL`: Base URL for WikiCFP (defaults to http://www.wikicfp.com)
+
